@@ -88,6 +88,8 @@ PUB commandDef(cmd, cmdDesc, cmdLine)
   elseif not subMatches(cmd, cmdLine)
     return false
 
+  fdc.writeString(cmd)
+  fdc.writeString(string(": "))
   return true
 
 PUB prompt
@@ -190,12 +192,10 @@ PUB parse(pos) | i, done, inputPtr, foundPos, curPos
 
   inputPtr := @cmdBuf
 
-  foundPos := false
+  foundPos := (pos == 0)
   done     := false
   curPos   := 0
   i        := 0
-
-  bytefill(@parBuf, 0, 8)
 
   repeat until byte[inputPtr] == 0 or done == true
     if byte[inputPtr] == 32 and not foundPos
@@ -205,8 +205,10 @@ PUB parse(pos) | i, done, inputPtr, foundPos, curPos
          inputPtr++
     elseif foundPos
       if byte[inputPtr] <> 32 and byte[inputPtr] <> CR and byte[inputPtr] <> LF and byte[inputPtr] <> 0
-        parBuf[i++] := byte[inputPtr]
+        parBuf[i] := byte[inputPtr]
+        i++
       else
+        parBuf[i] := 0
         done := true
     inputPtr++
 

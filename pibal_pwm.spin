@@ -17,10 +17,14 @@ pub start_pwm(p1, p2, p3, p4, freq) | i
   cognew(run_pwm(p3, p4, 2), @pwmstack2)                        ' launch 2nd pwm cog
   
 pub set_duty(ch, level)
-  level := 0 #> ||level <# 1000                                   ' limit duty cycle
+  level := 0 #> ||level <# 1000                                 ' limit duty cycle
   ch := 0 #> ch <# 3
   duty[ch] := -period * level / 1000
 
+pub get_duty(ch)
+  ch := 0 #> ch <# 3
+  return duty[ch]
+  
 pri run_pwm(p1, p2, d) | t                                      ' start with cognew
   if (p1 => 0)
     ctra := (%00100 << 26) | p1                                 ' pwm mode
