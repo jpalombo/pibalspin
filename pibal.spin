@@ -42,9 +42,9 @@ VAR
   
 PUB main
   millidiv := clkfreq / 1000
-  Kp := 10
-  Ki := 1
-  Kd := 0
+  Kp := 20
+  Ki := 2
+  Kd := 10
   millioffset := negx / millidiv * -1
   ps.init(string(">"), string("?"), 115200, 31, 30)    ' start the command interpreter shell
   quad.Start(@encoderPins)                       ' start the quadrature encoder reader (1 x cog)
