@@ -173,6 +173,7 @@ PRI cmdGetDebug(forMe) | i
 PRI resetMotors | i
   repeat i from 0 to 3
     desired_speed[i] := 0
+    error_integral[i] := 0
     outa[motorEn[i]] := %0
     outa[motorD1[i]] := %0
     outa[motorD2[i]] := %0
