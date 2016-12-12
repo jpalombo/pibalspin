@@ -74,7 +74,6 @@ PRI cmdHandler(cmdLine)
 PRI cmdSetSpeedAll(forMe) | motor, newspeed
   if not forMe
     return
-  ps.puts(string("Set Motor Speed "))
   repeat motor from 0 to 3
     ps.parseAndCheck(motor+1, string("!ERR 1"), true)
     newspeed := ps.currentParDec
