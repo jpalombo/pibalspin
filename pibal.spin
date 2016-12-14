@@ -51,9 +51,7 @@ PUB main
   resetMotors                                    ' reset the motors
   pwm.start_pwm(motorEn[0], motorEn[1], motorEn[2], motorEn[3], 16000)    ' start the pwm driver (2 x cogs)
   cognew(pid, @stack)
-  ' ps.puts(string("clkfreq : "))
-  ' ps.putd(clkfreq)
-  ' ps.puts(ps#CR)
+  ps.puts(string("Propeller starting...", ps#CR))
 
   repeat
     result := ps.prompt
