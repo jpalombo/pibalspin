@@ -19,6 +19,7 @@ OBJ
   ps : "propshell"
   quad :  "encoder"
   pwm : "pibal_pwm"
+  i2c : "I2C_slave"
 
 DAT
   encoderPins byte 11, 12, 13, 14, 15, 16, 17, 18
@@ -30,7 +31,6 @@ VAR
   long  stack[64]
   long  lastpos[4]
   long  debug[debuglim]
-  long  desired_speed[4]
   long  actual_speed[4]
   long  error_integral[4]
   long  error_derivative[4]
@@ -48,6 +48,7 @@ PUB main
   millioffset := negx / millidiv * -1
   ps.init(string(">"), string("?"), 115200, 31, 30)    ' start the command interpreter shell
   quad.Start(@encoderPins)                       ' start the quadrature encoder reader (1 x cog)
+  i2c.start(28,29,$42)
   resetMotors                                    ' reset the motors
   pwm.start_pwm(motorEn[0], motorEn[1], motorEn[2], motorEn[3], 16000)    ' start the pwm driver (2 x cogs)
   cognew(pid, @stack)
@@ -77,7 +78,11 @@ PRI cmdSetSpeedAll(forMe) | motor, newspeed
     newspeed := ps.currentParDec
     ps.putd(newspeed)
     ps.puts(string(" "))
-    desired_speed[motor] := newspeed
+    i2c.put(motor*2, ||newspeed)
+    if newspeed > 0
+      i2c.put(motor*2+1, 0)
+    else
+      i2c.put(motor*2+1, 1)
   ps.puts(string(ps#CR))
   ps.commandHandled
   
@@ -96,7 +101,11 @@ PRI cmdSetSpeed(forMe) | motor, newspeed
   ps.puts(string(", "))
   ps.putd(newspeed)
   ps.puts(string(ps#CR))
-  desired_speed[motor] := newspeed
+  i2c.put(motor*2, ||newspeed)
+  if newspeed > 0
+    i2c.put(motor*2+1, 0)
+  else
+    i2c.put(motor*2+1, 1)
   ps.commandHandled
 
 PRI cmdSetStop(forMe)
@@ -169,7 +178,8 @@ PRI cmdGetDebug(forMe) | i
   
 PRI resetMotors | i
   repeat i from 0 to 3
-    desired_speed[i] := 0
+    i2c.put(i*2,0)
+    i2c.put(i*2+1,0)
     error_integral[i] := 0
     outa[motorEn[i]] := %0
     outa[motorD1[i]] := %0
@@ -178,28 +188,29 @@ PRI resetMotors | i
     dira[motorD1[i]] := %1
     dira[motorD2[i]] := %1
 
-PRI pid | i, nextpos, error, last_error, nexttime, newspeed
+PRI pid | i, nextpos, error, last_error, nexttime, newspeed, desired_speed
   nextpos := 0
-  nexttime := millidiv + cnt
   resetMotors    ' enables the direction ports control from this cog
+  nexttime := millidiv + cnt
   repeat
     waitcnt(nexttime)
     nexttime += millidiv * 2
-    'Here every two milliseconds
+    'Here once every 2 milliseconds
    
-    repeat i from 0 to 3                ' loop takes just under 1ms to complete
-      debug[i] := desired_speed[i]
+    repeat i from 0 to 3          ' loop takes just under 1ms to complete
+      desired_speed := i2c.get(i*2)
+      if i2c.get(i*2+1) > 0
+        desired_speed := -desired_speed
+      debug[i] := desired_speed  
       nextpos := quad.count(i)
-      last_error := desired_speed[i] - actual_speed[i] 
+      last_error := desired_speed - actual_speed[i] 
       actual_speed[i] := nextpos - lastpos[i]
       lastpos[i] := nextpos
-
-      error := desired_speed[i] - actual_speed[i] 
+      error := desired_speed - actual_speed[i] 
       error_derivative[i] := error - last_error
       error_integral[i] += error
       newspeed := Kp * error + Ki * error_integral[i] + Kd * error_derivative[i]
       setMotorSpeed(i, newspeed)
-      debug[i+4] := pwm.get_duty(i)
 
 PRI setMotorSpeed(motor, speed)
   pwm.set_duty(motor, speed)
